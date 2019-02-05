@@ -356,15 +356,18 @@ def main():
         Data list format: csv file convert into below format.
         {set1:[item7, item2, item3, ..., itemN], set2:[...],..., setM:[itemI, itemJ, ..., itemZ]}
     '''
-    if len(sys.argv) == 1 :
-        print('Usage: %s, input_file.txt output_file.txt'%(sys.argv[0]))
-        #spark.stop()
-        return
-    else:
-        if len(sys.argv) > 1: input_file = sys.argv[1]
-        else: input_file = INPUT_FILE
-        if len(sys.argv) > 2: output_file = sys.argv[2]
-        else: output_file = OUTPUT_FILE
+    # if len(sys.argv) == 1 :
+    #     print('Usage: %s, input_file.txt output_file.txt'%(sys.argv[0]))
+    #     #spark.stop()
+    #     return
+    # else:
+    #     if len(sys.argv) > 1: input_file = sys.argv[1]
+    #     else: input_file = INPUT_FILE
+    #     if len(sys.argv) > 2: output_file = sys.argv[2]
+    #     else: output_file = OUTPUT_FILE
+
+    input_file = '/case_s/input.txt'
+    output_file = '/case_s/output2.txt'
 
     spark_conf = SparkConf().setAppName("APP_NAME").set("spark.cores.max", "30")
     global sc
