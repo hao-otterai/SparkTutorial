@@ -59,7 +59,7 @@ ROWS = 4 # 4 values in each Band
 NUM_OF_MOST_SIMILAR_SET = 5 #Top 5 similar sets will be selected for each set
 
 USE_UNICODE = False
-DEBUG = 0 # Level:0=No log, :1=Normal, :2=Detail
+DEBUG = 2 # Level:0=No log, :1=Normal, :2=Detail
 PRINT_TIME = True
 
 INPUT_FILE = 'input.txt'
@@ -219,16 +219,17 @@ class LSH(object):
         # self.conf = SparkConf().setAppName(APP_NAME).setMaster("local[*]")
         # # Create a context for the job.
         # self.sc = SparkContext(conf=self.conf)
-
+	self.conf = SparkConf().setAppName(APP_NAME)
+	self.sc =  SparkContext.getOrCreate(conf=self.conf)
         LSH.hash_alg = MinHash(hash_function)
         LSH.band = bands
         LSH.rows = rows
 
         self.dataset = data_set
-        self.rdd_dataset = sc.parallelize(self.dataset)
-        self.b_dataset = sc.broadcast(self.dataset)
+        self.rdd_dataset = self.sc.parallelize(self.dataset)
+        self.b_dataset = self.sc.broadcast(self.dataset)
         self.row_list = self.get_rows(bands, rows)
-        self.b_row_list = sc.broadcast(self.row_list)
+        self.b_row_list = self.sc.broadcast(self.row_list)
 
 
         self.jaccard_similary_dict = {}
@@ -366,8 +367,8 @@ def main():
     #     if len(sys.argv) > 2: output_file = sys.argv[2]
     #     else: output_file = OUTPUT_FILE
 
-    input_file = '/case_s/input.txt'
-    output_file = '/case_s/output2.txt'
+    input_file = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_s/input.txt'
+    output_file = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_s/output2.txt'
 
     spark_conf = SparkConf().setAppName("APP_NAME").set("spark.cores.max", "30")
     global sc
