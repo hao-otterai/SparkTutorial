@@ -59,7 +59,7 @@ ROWS = 4 # 4 values in each Band
 NUM_OF_MOST_SIMILAR_SET = 5 #Top 5 similar sets will be selected for each set
 
 USE_UNICODE = False
-DEBUG = 2 # Level:0=No log, :1=Normal, :2=Detail
+DEBUG = 1 # Level:0=No log, :1=Normal, :2=Detail
 PRINT_TIME = True
 
 INPUT_FILE = 'input.txt'
@@ -290,7 +290,7 @@ class LSH(object):
             if _v not in acc_list:
                 acc_list.append(_v)
             else: pass
-            if DEBUG > 1: print('LSH.get_merge_result=> _final_dict=%s'%(_final_dict))
+            #if DEBUG > 1: print('LSH.get_merge_result=> _final_dict=%s'%(_final_dict))
         return acc_list
 
 
