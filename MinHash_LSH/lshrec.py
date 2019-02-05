@@ -62,10 +62,8 @@ USE_UNICODE = False
 DEBUG = 1 # Level:0=No log, :1=Normal, :2=Detail
 PRINT_TIME = True
 
-INPUT_FILE = 'input.txt'
-#OUTPUT_FILE = 'output.txt' # OUTPUT_FILE COULD BE 'OUTPUT_FILE = None' for console or file name (e.g. 'OUTPUT_FILE = 'output.txt') for file.'
-OUTPUT_FILE = None # OUTPUT_FILE COULD BE 'OUTPUT_FILE = None' for console or file name (e.g. 'OUTPUT_FILE = 'output.txt') for file.'
-
+INPUT_FILE = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_s/input.txt'
+OUTPUT_FILE = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_s/output2.txt'
 
 def getInputData(filename):
 # Get data from input file.
@@ -367,8 +365,8 @@ def main():
     #     if len(sys.argv) > 2: output_file = sys.argv[2]
     #     else: output_file = OUTPUT_FILE
 
-    input_file = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_s/input.txt'
-    output_file = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_s/output2.txt'
+    input_file = INPUT_FILE
+    output_file = OUTPUT_FILE
 
     spark_conf = SparkConf().setAppName("APP_NAME").set("spark.cores.max", "30")
     global sc
