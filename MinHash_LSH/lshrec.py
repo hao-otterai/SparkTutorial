@@ -264,6 +264,23 @@ class LSH(object):
         return _rows
 
 
+    # def execute(self):
+    #     _similar_sets_dict = {}
+    #     _jaccard_similary_list = []
+    #     _row_list = self.b_row_list.value
+    #     _rdd_dataset = self.rdd_dataset
+    #     _dataset = self.b_dataset.value
+    #     if DEBUG: print ('LSH.execute=>_rdd_dataset =%s'%(str(_rdd_dataset)))
+    #
+    #     _rdd_similar_set_candidate_list = _rdd_dataset.map(lambda x: LSH.get_set_signatures(x, _row_list)).flatMap(lambda x:
+    #         ((x[i][0], x[i][1]) for i in range(len(x)))).groupByKey().map(lambda x: tuple(x[1])).filter(lambda x: len(x)>1).distinct()
+    #     if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list.collect()))
+    #
+    #     rdd_dataset = _rdd_similar_set_candidate_list.map(lambda candidate_sets: LSH.get_jaccard_similarity(_dataset, candidate_sets))
+    #     _similar_sets_dict = rdd_dataset.flatMap(lambda x: x.items()).reduceByKey(lambda acc, val: LSH.merge_result(acc, val)).collectAsMap()
+    #     if DEBUG: print('LSH.execute=>_similar_sets_dict2=%s'%(_similar_sets_dict))
+    #     return _similar_sets_dict
+
     def execute(self):
         _similar_sets_dict = {}
         _jaccard_similary_list = []
@@ -276,10 +293,36 @@ class LSH(object):
             ((x[i][0], x[i][1]) for i in range(len(x)))).groupByKey().map(lambda x: tuple(x[1])).filter(lambda x: len(x)>1).distinct()
         if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list.collect()))
 
+        #print('altertive solution to groupByKey()')
+        _rdd_similar_set_candidate_list_step1 = _rdd_dataset.map(lambda x: LSH.get_set_signatures(x, _row_list)).flatMap(lambda x:
+            ((x[i][0], x[i][1]) for i in range(len(x))))
+        if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list_step1 =%s'%(_rdd_similar_set_candidate_list_step1.collect()))
+        _rdd_similar_set_candidate_list2 = _rdd_similar_set_candidate_list_step1.groupByKey().map(lambda x: tuple(x[1])).filter(lambda x: len(x)>1).distinct()
+        if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list2.collect()))
+        # initialSet = mutable.HashSet.empty[String]
+        # addToSet = (s: mutable.HashSet[String], v: String) => s += v
+        # mergePartitionSets = (p1: mutable.HashSet[String], p2: mutable.HashSet[String]) => p1 ++= p2
+        # _rdd_similar_set_candidate_list2 = _rdd_similar_set_candidate_list_step1.aggregateByKey(initialSet)(addToSet, mergePartitionSets)
+        # if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list2.collect()))
+        """
+        ### scala example for improving groupByKey
+        val keysWithValuesList = Array("foo=A", "foo=A", "foo=A", "foo=A", "foo=B", "bar=C", "bar=D", "bar=D")
+        val data = sc.parallelize(keysWithValuesList)
+        //Create key value pairs
+        val kv = data.map(_.split("=")).map(v => (v(0), v(1))).cache()
+
+        val initialSet = mutable.HashSet.empty[String]
+        val addToSet = (s: mutable.HashSet[String], v: String) => s += v
+        val mergePartitionSets = (p1: mutable.HashSet[String], p2: mutable.HashSet[String]) => p1 ++= p2
+
+        val uniqueByKey = kv.aggregateByKey(initialSet)(addToSet, mergePartitionSets)
+        """
+
         rdd_dataset = _rdd_similar_set_candidate_list.map(lambda candidate_sets: LSH.get_jaccard_similarity(_dataset, candidate_sets))
         _similar_sets_dict = rdd_dataset.flatMap(lambda x: x.items()).reduceByKey(lambda acc, val: LSH.merge_result(acc, val)).collectAsMap()
         if DEBUG: print('LSH.execute=>_similar_sets_dict2=%s'%(_similar_sets_dict))
         return _similar_sets_dict
+
 
     @staticmethod
     def merge_result(acc_list, value_list):
