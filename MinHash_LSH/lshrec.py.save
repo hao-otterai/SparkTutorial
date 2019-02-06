@@ -59,11 +59,13 @@ ROWS = 4 # 4 values in each Band
 NUM_OF_MOST_SIMILAR_SET = 5 #Top 5 similar sets will be selected for each set
 
 USE_UNICODE = False
-DEBUG = 0 # Level:0=No log, :1=Normal, :2=Detail
+DEBUG = 2 # Level:0=No log, :1=Normal, :2=Detail
 PRINT_TIME = True
 
-INPUT_FILE = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_l/input.txt'
-OUTPUT_FILE = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_l/output2.txt'
+INPUT_FILE = 'input.txt'
+#OUTPUT_FILE = 'output.txt' # OUTPUT_FILE COULD BE 'OUTPUT_FILE = None' for console or file name (e.g. 'OUTPUT_FILE = 'output.txt') for file.'
+OUTPUT_FILE = None # OUTPUT_FILE COULD BE 'OUTPUT_FILE = None' for console or file name (e.g. 'OUTPUT_FILE = 'output.txt') for file.'
+
 
 def getInputData(filename):
 # Get data from input file.
@@ -214,20 +216,20 @@ class LSH(object):
         2. You can configure your own hash function for LSH.
             customized_hash(data, seed) should provide a hash value according data, and an assigned seed value will generate different hash value for same data.
         '''
-        # self.conf = SparkConf().setAppName(APP_NAME).setMaster("local[*]")
-        # # Create a context for the job.
+        #self.conf = SparkConf().setAppName(APP_NAME).setMaster("local[*]")
+        
+# # Create a context for the job.
         # self.sc = SparkContext(conf=self.conf)
-	self.conf = SparkConf().setAppName(APP_NAME)
-	self.sc =  SparkContext.getOrCreate(conf=self.conf)
+
         LSH.hash_alg = MinHash(hash_function)
         LSH.band = bands
         LSH.rows = rows
 
         self.dataset = data_set
-        self.rdd_dataset = self.sc.parallelize(self.dataset)
-        self.b_dataset = self.sc.broadcast(self.dataset)
+        self.rdd_dataset = sc.parallelize(self.dataset)
+        self.b_dataset = sc.broadcast(self.dataset)
         self.row_list = self.get_rows(bands, rows)
-        self.b_row_list = self.sc.broadcast(self.row_list)
+        self.b_row_list = sc.broadcast(self.row_list)
 
 
         self.jaccard_similary_dict = {}
@@ -264,23 +266,6 @@ class LSH(object):
         return _rows
 
 
-    # def execute(self):
-    #     _similar_sets_dict = {}
-    #     _jaccard_similary_list = []
-    #     _row_list = self.b_row_list.value
-    #     _rdd_dataset = self.rdd_dataset
-    #     _dataset = self.b_dataset.value
-    #     if DEBUG: print ('LSH.execute=>_rdd_dataset =%s'%(str(_rdd_dataset)))
-    #
-    #     _rdd_similar_set_candidate_list = _rdd_dataset.map(lambda x: LSH.get_set_signatures(x, _row_list)).flatMap(lambda x:
-    #         ((x[i][0], x[i][1]) for i in range(len(x)))).groupByKey().map(lambda x: tuple(x[1])).filter(lambda x: len(x)>1).distinct()
-    #     if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list.collect()))
-    #
-    #     rdd_dataset = _rdd_similar_set_candidate_list.map(lambda candidate_sets: LSH.get_jaccard_similarity(_dataset, candidate_sets))
-    #     _similar_sets_dict = rdd_dataset.flatMap(lambda x: x.items()).reduceByKey(lambda acc, val: LSH.merge_result(acc, val)).collectAsMap()
-    #     if DEBUG: print('LSH.execute=>_similar_sets_dict2=%s'%(_similar_sets_dict))
-    #     return _similar_sets_dict
-
     def execute(self):
         _similar_sets_dict = {}
         _jaccard_similary_list = []
@@ -293,36 +278,10 @@ class LSH(object):
             ((x[i][0], x[i][1]) for i in range(len(x)))).groupByKey().map(lambda x: tuple(x[1])).filter(lambda x: len(x)>1).distinct()
         if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list.collect()))
 
-        #print('altertive solution to groupByKey()')
-        _rdd_similar_set_candidate_list_step1 = _rdd_dataset.map(lambda x: LSH.get_set_signatures(x, _row_list)).flatMap(lambda x:
-            ((x[i][0], x[i][1]) for i in range(len(x))))
-        if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list_step1 =%s'%(_rdd_similar_set_candidate_list_step1.collect()))
-        _rdd_similar_set_candidate_list2 = _rdd_similar_set_candidate_list_step1.groupByKey().map(lambda x: tuple(x[1])).filter(lambda x: len(x)>1).distinct()
-        if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list2.collect()))
-        # initialSet = mutable.HashSet.empty[String]
-        # addToSet = (s: mutable.HashSet[String], v: String) => s += v
-        # mergePartitionSets = (p1: mutable.HashSet[String], p2: mutable.HashSet[String]) => p1 ++= p2
-        # _rdd_similar_set_candidate_list2 = _rdd_similar_set_candidate_list_step1.aggregateByKey(initialSet)(addToSet, mergePartitionSets)
-        # if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list2.collect()))
-        """
-        ### scala example for improving groupByKey
-        val keysWithValuesList = Array("foo=A", "foo=A", "foo=A", "foo=A", "foo=B", "bar=C", "bar=D", "bar=D")
-        val data = sc.parallelize(keysWithValuesList)
-        //Create key value pairs
-        val kv = data.map(_.split("=")).map(v => (v(0), v(1))).cache()
-
-        val initialSet = mutable.HashSet.empty[String]
-        val addToSet = (s: mutable.HashSet[String], v: String) => s += v
-        val mergePartitionSets = (p1: mutable.HashSet[String], p2: mutable.HashSet[String]) => p1 ++= p2
-
-        val uniqueByKey = kv.aggregateByKey(initialSet)(addToSet, mergePartitionSets)
-        """
-
         rdd_dataset = _rdd_similar_set_candidate_list.map(lambda candidate_sets: LSH.get_jaccard_similarity(_dataset, candidate_sets))
         _similar_sets_dict = rdd_dataset.flatMap(lambda x: x.items()).reduceByKey(lambda acc, val: LSH.merge_result(acc, val)).collectAsMap()
         if DEBUG: print('LSH.execute=>_similar_sets_dict2=%s'%(_similar_sets_dict))
         return _similar_sets_dict
-
 
     @staticmethod
     def merge_result(acc_list, value_list):
@@ -331,7 +290,7 @@ class LSH(object):
             if _v not in acc_list:
                 acc_list.append(_v)
             else: pass
-            #if DEBUG > 1: print('LSH.get_merge_result=> _final_dict=%s'%(_final_dict))
+            if DEBUG > 1: print('LSH.get_merge_result=> _final_dict=%s'%(_final_dict))
         return acc_list
 
 
@@ -408,8 +367,8 @@ def main():
     #     if len(sys.argv) > 2: output_file = sys.argv[2]
     #     else: output_file = OUTPUT_FILE
 
-    input_file = INPUT_FILE
-    output_file = OUTPUT_FILE
+    input_file = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_s/input.txt'
+    output_file = '/home/ubuntu/SparkTutorial/MinHash_LSH/case_s/output2.txt'
 
     spark_conf = SparkConf().setAppName("APP_NAME").set("spark.cores.max", "30")
     global sc
