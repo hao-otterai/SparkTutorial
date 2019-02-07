@@ -253,15 +253,17 @@ class LSH(object):
         if DEBUG: print ('LSH.execute=>_rdd_dataset =%s'%(str(_rdd_dataset)))
         # _rdd_similar_set_candidate_list = _rdd_dataset.map(lambda x: LSH.get_set_signatures(x, _row_list)).flatMap(lambda x:
         #     ((x[i][0], x[i][1]) for i in range(len(x)))).groupByKey().map(lambda x: tuple(x[1])).filter(lambda x: len(x)>1).distinct()
+        # _rdd_similar_set_candidate_list = _rdd_dataset.map(lambda x: LSH.get_set_signatures(x, _row_list)).flatMap(lambda x:
+        #     ((x[i][0], x[i][1]) for i in range(len(x)))).reduceByKey(lambda a, b: a+','+b).map(lambda x: tuple(x[1].split(','))).filter(lambda x: len(x)>1).distinct()
         _rdd_similar_set_candidate_list = _rdd_dataset.map(lambda x: LSH.get_set_signatures(x, _row_list)).flatMap(lambda x:
-            ((x[i][0], x[i][1]) for i in range(len(x)))).reduceByKey(lambda a, b: a+','+b).map(lambda x: tuple(x[1].split(','))).filter(lambda x: len(x)>1).distinct()
+            ((x[i][0], x[i][1]) for i in range(len(x)))).reduceByKey(lambda a, b: a+b).distinct()
         if DEBUG: print ('LSH.execute=>_rdd_similar_set_candidate_list =%s'%(_rdd_similar_set_candidate_list.collect()))
 
-        rdd_dataset = _rdd_similar_set_candidate_list.map(lambda candidate_sets: LSH.get_jaccard_similarity(_dataset, candidate_sets))
-        _similar_sets_dict = rdd_dataset.flatMap(lambda x: x.items()).reduceByKey(lambda acc, val: LSH.merge_result(acc, val)).collectAsMap()
-        if DEBUG: print('LSH.execute=>_similar_sets_dict2=%s'%(_similar_sets_dict))
-
+        # rdd_dataset = _rdd_similar_set_candidate_list.map(lambda candidate_sets: LSH.get_jaccard_similarity(_dataset, candidate_sets))
+        # _similar_sets_dict = rdd_dataset.flatMap(lambda x: x.items()).reduceByKey(lambda acc, val: LSH.merge_result(acc, val)).collectAsMap()
+        # if DEBUG: print('LSH.execute=>_similar_sets_dict2=%s'%(_similar_sets_dict))
         return _similar_sets_dict
+
     @staticmethod
     def merge_result(acc_list, value_list):
         # Remove redundant similar sets from each partitions
